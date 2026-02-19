@@ -14,7 +14,7 @@ const reachOutOptions = [
   "Other",
 ];
 
-const APPS_SCRIPT_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcTNo0EPcRzt2jLPj37znhmWtTLfULi7GvO0U3HxT4JP6T4hYbzgPYnx7guVQsk5tc/exec";
 
 export function NewsletterSection() {
   const { ref, isInView } = useInView({ threshold: 0.15 });
