@@ -51,7 +51,6 @@ function MonsterLogo({ className }: { className?: string }) {
         fontWeight="800"
         fill="currentColor"
         letterSpacing="1"
-        textTransform="uppercase"
       >
         MONSTER
       </text>
