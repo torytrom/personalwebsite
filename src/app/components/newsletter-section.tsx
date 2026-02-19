@@ -57,19 +57,14 @@ export function NewsletterSection() {
         userAgent: navigator.userAgent,
       };
 
-      const res = await fetch(APPS_SCRIPT_URL, {
+      await fetch(APPS_SCRIPT_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
-
-      if (data.ok) {
-        setSubmitted(true);
-      } else {
-        setError(true);
-      }
+      setSubmitted(true);
     } catch {
       setError(true);
     } finally {
