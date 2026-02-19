@@ -3,247 +3,63 @@ import { useInView } from "./hooks/use-in-view";
 
 function MondayLogo({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 200 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <circle cx="12" cy="28" r="4" fill="currentColor" opacity="0.7" />
-      <circle cx="28" cy="20" r="4" fill="currentColor" opacity="0.85" />
-      <circle cx="44" cy="12" r="4" fill="currentColor" />
-      <text
-        x="60"
-        y="28"
-        fontFamily="Inter, sans-serif"
-        fontSize="18"
-        fontWeight="700"
-        fill="currentColor"
-        letterSpacing="-0.5"
-      >
-        monday.com
-      </text>
+    <svg viewBox="0 0 200 40" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <circle cx="14" cy="26" r="5" fill="currentColor" opacity="0.5" />
+      <circle cx="30" cy="18" r="5" fill="currentColor" opacity="0.75" />
+      <circle cx="46" cy="10" r="5" fill="currentColor" />
+      <text x="62" y="27" fontFamily="Inter, sans-serif" fontSize="17" fontWeight="700" fill="currentColor" letterSpacing="-0.5">monday.com</text>
     </svg>
   );
 }
 
 function MonsterLogo({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 180 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <path
-        d="M4 32V14l10 12 10-12v18"
-        stroke="currentColor"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      <text
-        x="36"
-        y="28"
-        fontFamily="Inter, sans-serif"
-        fontSize="18"
-        fontWeight="800"
-        fill="currentColor"
-        letterSpacing="1"
-      >
-        MONSTER
-      </text>
+    <svg viewBox="0 0 160 36" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <path d="M4 30V10l9 11 9-11v20" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <text x="34" y="26" fontFamily="Inter, sans-serif" fontSize="16" fontWeight="800" fill="currentColor" letterSpacing="2">MONSTER</text>
     </svg>
   );
 }
 
 function CitizenMLogo({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 170 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <text
-        x="4"
-        y="28"
-        fontFamily="Inter, sans-serif"
-        fontSize="20"
-        fontWeight="700"
-        fill="currentColor"
-        letterSpacing="-0.5"
-      >
-        citizen
-      </text>
-      <text
-        x="103"
-        y="28"
-        fontFamily="Inter, sans-serif"
-        fontSize="20"
-        fontWeight="900"
-        fill="currentColor"
-        letterSpacing="-0.5"
-      >
-        M
-      </text>
+    <svg viewBox="0 0 130 36" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <text x="0" y="26" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="600" fill="currentColor" letterSpacing="-0.5">citizen</text>
+      <text x="88" y="26" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="900" fill="currentColor" letterSpacing="-0.5">M</text>
     </svg>
   );
 }
 
 function CalPolyLogo({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 180 44"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <path
-        d="M6 34 C8 22, 14 16, 18 14 C20 13, 22 14, 22 16 C22 18, 20 20, 18 22 C24 18, 28 16, 30 18 C32 20, 28 26, 24 30 L30 34"
-        stroke="currentColor"
-        strokeWidth="2"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <text
-        x="40"
-        y="22"
-        fontFamily="Inter, sans-serif"
-        fontSize="14"
-        fontWeight="800"
-        fill="currentColor"
-        letterSpacing="1.5"
-      >
-        CAL POLY
-      </text>
-      <text
-        x="40"
-        y="36"
-        fontFamily="Inter, sans-serif"
-        fontSize="9"
-        fontWeight="500"
-        fill="currentColor"
-        letterSpacing="2"
-        opacity="0.7"
-      >
-        SAN LUIS OBISPO
-      </text>
+    <svg viewBox="0 0 170 44" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <path d="M10 36c2-10 6-16 10-20 2-2 5-2 6 1s-2 6-4 8c4-4 8-6 10-4s-2 8-6 12l4 3" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <text x="44" y="21" fontFamily="Inter, sans-serif" fontSize="13" fontWeight="800" fill="currentColor" letterSpacing="2">CAL POLY</text>
+      <text x="44" y="35" fontFamily="Inter, sans-serif" fontSize="8.5" fontWeight="500" fill="currentColor" letterSpacing="2.5" opacity="0.65">SAN LUIS OBISPO</text>
     </svg>
   );
 }
 
 function HarvardLogo({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 160 44"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <path
-        d="M8 6h20v22c0 6-10 10-10 10S8 34 8 28V6z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        fill="none"
-      />
-      <text
-        x="12"
-        y="17"
-        fontFamily="serif"
-        fontSize="6"
-        fontWeight="700"
-        fill="currentColor"
-        letterSpacing="0.5"
-      >
-        VE RI
-      </text>
-      <text
-        x="14"
-        y="26"
-        fontFamily="serif"
-        fontSize="6"
-        fontWeight="700"
-        fill="currentColor"
-        letterSpacing="0.5"
-      >
-        TAS
-      </text>
-      <text
-        x="40"
-        y="20"
-        fontFamily="Inter, sans-serif"
-        fontSize="11"
-        fontWeight="700"
-        fill="currentColor"
-        letterSpacing="1.5"
-      >
-        HARVARD
-      </text>
-      <text
-        x="40"
-        y="34"
-        fontFamily="Inter, sans-serif"
-        fontSize="9"
-        fontWeight="500"
-        fill="currentColor"
-        letterSpacing="1"
-        opacity="0.7"
-      >
-        BUSINESS SCHOOL
-      </text>
+    <svg viewBox="0 0 200 44" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <path d="M6 4h24v24c0 7-12 12-12 12S6 35 6 28V4z" stroke="currentColor" strokeWidth="1.8" fill="none" />
+      <line x1="6" y1="14" x2="30" y2="14" stroke="currentColor" strokeWidth="1" opacity="0.4" />
+      <line x1="6" y1="24" x2="30" y2="24" stroke="currentColor" strokeWidth="1" opacity="0.4" />
+      <line x1="18" y1="4" x2="18" y2="28" stroke="currentColor" strokeWidth="1" opacity="0.4" />
+      <text x="40" y="20" fontFamily="Inter, sans-serif" fontSize="13" fontWeight="700" fill="currentColor" letterSpacing="2">HARVARD</text>
+      <text x="40" y="35" fontFamily="Inter, sans-serif" fontSize="9" fontWeight="500" fill="currentColor" letterSpacing="1.5" opacity="0.65">BUSINESS SCHOOL</text>
     </svg>
   );
 }
 
 function ColumbiaLogo({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 165 44"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <path
-        d="M6 28l4-16 6 8 6-8 6 8 6-8 4 16H6z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        fill="none"
-        strokeLinejoin="round"
-      />
-      <line
-        x1="6"
-        y1="31"
-        x2="38"
-        y2="31"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <text
-        x="48"
-        y="20"
-        fontFamily="Inter, sans-serif"
-        fontSize="11"
-        fontWeight="700"
-        fill="currentColor"
-        letterSpacing="1.5"
-      >
-        COLUMBIA
-      </text>
-      <text
-        x="48"
-        y="34"
-        fontFamily="Inter, sans-serif"
-        fontSize="9"
-        fontWeight="500"
-        fill="currentColor"
-        letterSpacing="1"
-        opacity="0.7"
-      >
-        BUSINESS SCHOOL
-      </text>
+    <svg viewBox="0 0 200 44" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <path d="M8 30l5-18 5 9 5-9 5 9 5-9 5 18H8z" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinejoin="round" />
+      <line x1="8" y1="34" x2="38" y2="34" stroke="currentColor" strokeWidth="1.8" />
+      <text x="48" y="20" fontFamily="Inter, sans-serif" fontSize="13" fontWeight="700" fill="currentColor" letterSpacing="2">COLUMBIA</text>
+      <text x="48" y="35" fontFamily="Inter, sans-serif" fontSize="9" fontWeight="500" fill="currentColor" letterSpacing="1.5" opacity="0.65">BUSINESS SCHOOL</text>
     </svg>
   );
 }
@@ -255,19 +71,19 @@ interface Brand {
 }
 
 const brands: Brand[] = [
-  { name: "monday.com", Logo: MondayLogo, width: "w-[160px] md:w-[190px]" },
-  { name: "Monster", Logo: MonsterLogo, width: "w-[150px] md:w-[175px]" },
-  { name: "citizenM", Logo: CitizenMLogo, width: "w-[140px] md:w-[160px]" },
+  { name: "monday.com", Logo: MondayLogo, width: "w-[160px] md:w-[185px]" },
+  { name: "Monster", Logo: MonsterLogo, width: "w-[140px] md:w-[165px]" },
+  { name: "citizenM", Logo: CitizenMLogo, width: "w-[120px] md:w-[140px]" },
   { name: "Cal Poly", Logo: CalPolyLogo, width: "w-[155px] md:w-[175px]" },
   {
     name: "Harvard Business School",
     Logo: HarvardLogo,
-    width: "w-[200px] md:w-[240px]",
+    width: "w-[180px] md:w-[210px]",
   },
   {
     name: "Columbia Business School",
     Logo: ColumbiaLogo,
-    width: "w-[200px] md:w-[240px]",
+    width: "w-[180px] md:w-[210px]",
   },
 ];
 
