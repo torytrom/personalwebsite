@@ -14,9 +14,13 @@ const reachOutOptions = [
   "Other",
 ];
 
+const APPS_SCRIPT_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL";
+
 export function NewsletterSection() {
   const { ref, isInView } = useInView({ threshold: 0.15 });
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -34,10 +38,42 @@ export function NewsletterSection() {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name && formData.email) {
-      setSubmitted(true);
+    if (!formData.name || !formData.email) return;
+
+    setSubmitting(true);
+    setError(false);
+
+    try {
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        companyWebsite: formData.website,
+        role: formData.role,
+        reason: formData.reason,
+        message: formData.message,
+        pageUrl: window.location.href,
+        userAgent: navigator.userAgent,
+      };
+
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (data.ok) {
+        setSubmitted(true);
+      } else {
+        setError(true);
+      }
+    } catch {
+      setError(true);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -211,11 +247,18 @@ export function NewsletterSection() {
                   />
                 </div>
 
+                {error && (
+                  <p className="font-['Inter'] text-[13px] text-red-500 text-center">
+                    Something went wrong. Please try again.
+                  </p>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full font-['Inter'] text-[15px] tracking-[0.02em] py-3.5 bg-[#1a1a6e] text-white rounded-full hover:bg-[#14145a] transition-all duration-300 hover:shadow-lg hover:shadow-[#1a1a6e]/20 mt-2"
+                  disabled={submitting}
+                  className="w-full font-['Inter'] text-[15px] tracking-[0.02em] py-3.5 bg-[#1a1a6e] text-white rounded-full hover:bg-[#14145a] transition-all duration-300 hover:shadow-lg hover:shadow-[#1a1a6e]/20 mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Submit
+                  {submitting ? "Sending..." : "Submit"}
                 </button>
               </form>
             )}
