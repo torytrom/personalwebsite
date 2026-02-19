@@ -14,7 +14,7 @@ const reachOutOptions = [
   "Other",
 ];
 
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcTNo0EPcRzt2jLPj37znhmWtTLfULi7GvO0U3HxT4JP6T4hYbzgPYnx7guVQsk5tc/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2Vy6u3CB-ZksdSkFGM-hM1xlrzLRTZyAGY-tIauuCmiKJmANYiy8LdRSud3t5NNyy/exec";
 
 export function NewsletterSection() {
   const { ref, isInView } = useInView({ threshold: 0.15 });
