@@ -1,31 +1,46 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const BUCKET = "website-video";
 const SIGNED_URL_EXPIRES = 600; // 10 minutes
 
-// ── Supabase admin client (reused across warm invocations) ────────────────────
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// ── Lazy Supabase client (created on first request, reused across warm invocations)
+let _supabase: SupabaseClient | null = null;
+
+function getSupabase(): SupabaseClient | null {
+  if (_supabase) return _supabase;
+
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    console.error(
+      "[signed-url] Missing env vars. SUPABASE_URL:",
+      url ? "set" : "MISSING",
+      "SUPABASE_SERVICE_ROLE_KEY:",
+      key ? "set" : "MISSING"
+    );
+    return null;
+  }
+
+  _supabase = createClient(url, key);
+  return _supabase;
+}
 
 // ── Rate limiter (in-memory, per serverless instance) ─────────────────────────
 const RATE_LIMIT = 30; // max requests per window per IP
 const RATE_WINDOW_MS = 60_000; // 1 minute
 const rateMap = new Map<string, { count: number; resetAt: number }>();
 
-// Periodically clean stale entries so the Map doesn't grow unbounded
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of rateMap) {
-    if (entry.resetAt < now) rateMap.delete(ip);
-  }
-}, RATE_WINDOW_MS);
-
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
+  // Clean stale entries opportunistically
+  if (rateMap.size > 500) {
+    for (const [k, v] of rateMap) {
+      if (v.resetAt < now) rateMap.delete(k);
+    }
+  }
   const entry = rateMap.get(ip);
   if (!entry || entry.resetAt < now) {
     rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
@@ -59,6 +74,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // — Only GET ────────────────────────────────────────────────────────────────
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // — Check Supabase client ──────────────────────────────────────────────────
+  const supabase = getSupabase();
+  if (!supabase) {
+    return res.status(503).json({ error: "Server configuration error — missing env vars" });
   }
 
   // — Origin / Referer soft-check (blocks naïve hot-linkers) ─────────────────
