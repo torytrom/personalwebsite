@@ -3,58 +3,150 @@ import { motion } from "motion/react";
 import { useInView } from "./hooks/use-in-view";
 import { Play } from "lucide-react";
 
+// ── Types ─────────────────────────────────────────────────────────────────────
 interface VideoItem {
   id: number;
   title: string;
   descriptor: string;
-  video: string;
+  /** Filename inside the "videos for website" bucket (no full URL). */
+  videoPath: string;
 }
 
+// ── Video data (paths only — signed URLs are fetched at runtime) ──────────────
 const videoItems: VideoItem[] = [
   {
     id: 1,
     title: "AI-First Product Thinking",
     descriptor: "How AI reshapes every stage of the product lifecycle",
-    video:
-      "https://tsbeszszrrxfaootaokf.supabase.co/storage/v1/object/public/videos%20for%20website/3f148009dcaa4e08ac74e61f0cfcb21f.mov",
+    videoPath: "3f148009dcaa4e08ac74e61f0cfcb21f.mov",
   },
   {
     id: 2,
     title: "The Future of Creative Tools",
     descriptor: "Building products that serve millions of creators",
-    video:
-      "https://tsbeszszrrxfaootaokf.supabase.co/storage/v1/object/public/videos%20for%20website/2360CB02-E6F7-4A3E-81E1-87799549C0D5.mov",
+    videoPath: "2360CB02-E6F7-4A3E-81E1-87799549C0D5.mov",
   },
   {
     id: 3,
     title: "Navigating AI Disruption",
     descriptor: "What product leaders need to know right now",
-    video:
-      "https://tsbeszszrrxfaootaokf.supabase.co/storage/v1/object/public/videos%20for%20website/7476D403-1564-4A66-8856-FF7F32F9AB42.mov",
+    videoPath: "7476D403-1564-4A66-8856-FF7F32F9AB42.mov",
   },
   {
     id: 4,
     title: "Building in Public",
     descriptor: "Sharing mental models and behind-the-scenes insights",
-    video:
-      "https://tsbeszszrrxfaootaokf.supabase.co/storage/v1/object/public/videos%20for%20website/b576310d5b114fda82cab62ea6cccd81.mov",
+    videoPath: "b576310d5b114fda82cab62ea6cccd81.mov",
   },
   {
     id: 5,
     title: "Vibe Coding in Practice",
     descriptor: "From idea to working prototype in hours, not quarters",
-    video:
-      "https://tsbeszszrrxfaootaokf.supabase.co/storage/v1/object/public/videos%20for%20website/621d9b84869a493198b1ec99e116b128.mov",
+    videoPath: "621d9b84869a493198b1ec99e116b128.mov",
   },
   {
     id: 6,
     title: "Product × Creator Mindset",
     descriptor: "Why the best PMs think like creators",
-    video:
-      "https://tsbeszszrrxfaootaokf.supabase.co/storage/v1/object/public/videos%20for%20website/v15044gf0000d5sdp9fog65lknonjqc0.mov",
+    videoPath: "v15044gf0000d5sdp9fog65lknonjqc0.mov",
   },
 ];
 
+// ── Signed-URL cache (module-level, survives re-renders) ──────────────────────
+const SIGNED_URL_TTL_MS = 10 * 60 * 1000; // 10 min — matches server-side expiry
+const REFRESH_BUFFER_MS = 2 * 60 * 1000; // refresh 2 min before expiry
+
+interface CacheEntry {
+  url: string;
+  expiresAt: number; // Date.now()-based timestamp
+}
+
+const urlCache = new Map<string, CacheEntry>();
+const pendingFetches = new Map<string, Promise<string | null>>();
+
+async function fetchSignedUrl(videoPath: string): Promise<string | null> {
+  // Return cached if still fresh
+  const cached = urlCache.get(videoPath);
+  if (cached && cached.expiresAt - REFRESH_BUFFER_MS > Date.now()) {
+    return cached.url;
+  }
+
+  // De-duplicate concurrent requests for the same path
+  const inflight = pendingFetches.get(videoPath);
+  if (inflight) return inflight;
+
+  const promise: Promise<string | null> = (async () => {
+    try {
+      const res = await fetch(
+        `/api/video-signed-url?path=${encodeURIComponent(videoPath)}`
+      );
+      if (!res.ok) {
+        console.warn(`[video] signed-url ${res.status} for ${videoPath}`);
+        return null;
+      }
+      const { signedUrl } = (await res.json()) as { signedUrl: string };
+      urlCache.set(videoPath, {
+        url: signedUrl,
+        expiresAt: Date.now() + SIGNED_URL_TTL_MS,
+      });
+      return signedUrl;
+    } catch (err) {
+      console.warn(`[video] signed-url fetch failed for ${videoPath}`, err);
+      return null;
+    } finally {
+      pendingFetches.delete(videoPath);
+    }
+  })();
+
+  pendingFetches.set(videoPath, promise);
+  return promise;
+}
+
+// ── Hook: useSignedUrl ────────────────────────────────────────────────────────
+function useSignedUrl(videoPath: string) {
+  const [url, setUrl] = useState<string | null>(() => {
+    const cached = urlCache.get(videoPath);
+    return cached && cached.expiresAt - REFRESH_BUFFER_MS > Date.now()
+      ? cached.url
+      : null;
+  });
+
+  // Force-refresh (e.g. on video error)
+  const refresh = useCallback(async () => {
+    urlCache.delete(videoPath);
+    pendingFetches.delete(videoPath);
+    const fresh = await fetchSignedUrl(videoPath);
+    if (fresh) setUrl(fresh);
+  }, [videoPath]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    // Initial fetch
+    fetchSignedUrl(videoPath).then((u) => {
+      if (mounted && u) setUrl(u);
+    });
+
+    // Periodic refresh — check once per minute, refresh if near expiry
+    const timer = setInterval(async () => {
+      const cached = urlCache.get(videoPath);
+      if (!cached || cached.expiresAt - REFRESH_BUFFER_MS < Date.now()) {
+        urlCache.delete(videoPath);
+        const fresh = await fetchSignedUrl(videoPath);
+        if (mounted && fresh) setUrl(fresh);
+      }
+    }, 60_000);
+
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
+  }, [videoPath]);
+
+  return { url, refresh };
+}
+
+// ── VideoTile ─────────────────────────────────────────────────────────────────
 function VideoTile({
   item,
   isInView,
@@ -64,19 +156,23 @@ function VideoTile({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const { url: signedUrl, refresh } = useSignedUrl(item.videoPath);
 
   const tryPlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    video.play().then(() => {
-      setIsPlaying(true);
-    }).catch(() => {});
+    video
+      .play()
+      .then(() => setIsPlaying(true))
+      .catch(() => {});
   }, []);
 
+  // Auto-play when in view AND we have a URL
   useEffect(() => {
-    if (isInView) tryPlay();
-  }, [isInView, tryPlay]);
+    if (isInView && signedUrl) tryPlay();
+  }, [isInView, signedUrl, tryPlay]);
 
+  // Play / pause state listeners
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -89,6 +185,12 @@ function VideoTile({
       video.removeEventListener("pause", onPause);
     };
   }, []);
+
+  // On video error, refresh the signed URL (it may have expired)
+  const handleError = useCallback(() => {
+    console.warn(`[video] playback error, refreshing URL for ${item.videoPath}`);
+    refresh();
+  }, [refresh, item.videoPath]);
 
   const handleTap = () => {
     const video = videoRef.current;
@@ -104,16 +206,22 @@ function VideoTile({
       onClick={handleTap}
     >
       <div className="relative aspect-[9/16] rounded-[16px] overflow-hidden bg-[#111] shadow-[0_4px_24px_rgba(0,0,0,0.08)] group-hover:shadow-[0_12px_48px_rgba(0,0,0,0.14)] transition-shadow duration-500">
-        <video
-          ref={videoRef}
-          src={item.video}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-        />
+        {signedUrl ? (
+          <video
+            ref={videoRef}
+            src={signedUrl}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            onError={handleError}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+          />
+        ) : (
+          /* Skeleton placeholder while signed URL loads */
+          <div className="w-full h-full animate-pulse bg-[#222]" />
+        )}
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 via-40% to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
 
@@ -135,6 +243,7 @@ function VideoTile({
   );
 }
 
+// ── Section ───────────────────────────────────────────────────────────────────
 export function FeaturedVideosSection() {
   const { ref, isInView } = useInView({ threshold: 0.06 });
   const [isPaused, setIsPaused] = useState(false);
