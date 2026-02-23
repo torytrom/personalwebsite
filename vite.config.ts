@@ -32,6 +32,30 @@ function videoSignedUrlDev() {
     },
 
     configureServer(server: { middlewares: { use: (path: string, handler: (req: IncomingMessage, res: ServerResponse) => void) => void } }) {
+      // Debug test page: visit /test-video to check if a signed video plays at all
+      server.middlewares.use('/test-video', async (_req, res) => {
+        if (!supabaseUrl || !supabaseKey) {
+          res.statusCode = 503
+          res.end('Env vars not set')
+          return
+        }
+        const supabase = createClient(supabaseUrl, supabaseKey)
+        const { data } = await supabase.storage
+          .from(BUCKET)
+          .createSignedUrl('621d9b84869a493198b1ec99e116b128.mov', EXPIRES)
+        const url = data?.signedUrl || ''
+        res.setHeader('Content-Type', 'text/html')
+        res.end(`<!DOCTYPE html><html><body style="background:#111;color:#fff;font-family:sans-serif;padding:2rem">
+          <h2>Video playback test</h2>
+          <p>Signed URL: <code style="word-break:break-all;font-size:11px">${url.slice(0, 80)}...</code></p>
+          <video src="${url}" autoplay loop muted playsinline controls width="320"
+            style="border:2px solid lime;margin-top:1rem"
+            onloadeddata="document.getElementById('s').textContent='✅ loadeddata fired'"
+            onerror="document.getElementById('s').textContent='❌ error: '+this.error?.message"></video>
+          <p id="s" style="margin-top:1rem;font-size:18px">⏳ Loading...</p>
+        </body></html>`)
+      })
+
       server.middlewares.use('/api/video-signed-url', async (req, res) => {
         res.setHeader('Content-Type', 'application/json')
 

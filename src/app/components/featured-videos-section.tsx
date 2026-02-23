@@ -44,12 +44,6 @@ const videoItems: VideoItem[] = [
     descriptor: "From idea to working prototype in hours, not quarters",
     videoPath: "621d9b84869a493198b1ec99e116b128.mov",
   },
-  {
-    id: 6,
-    title: "Product × Creator Mindset",
-    descriptor: "Why the best PMs think like creators",
-    videoPath: "v15044gf0000d5sdp9fog65lknonjqc0.mov",
-  },
 ];
 
 // ── Signed-URL cache (module-level, survives re-renders) ──────────────────────
@@ -157,37 +151,23 @@ function VideoTile({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const { url: signedUrl, refresh } = useSignedUrl(item.videoPath);
+  const errorCountRef = useRef(0);
 
+  // Try to play when the video has enough data and the section is in view
   const tryPlay = useCallback(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !isInView) return;
     video
       .play()
       .then(() => setIsPlaying(true))
       .catch(() => {});
-  }, []);
-
-  // Auto-play when in view AND we have a URL
-  useEffect(() => {
-    if (isInView && signedUrl) tryPlay();
-  }, [isInView, signedUrl, tryPlay]);
-
-  // Play / pause state listeners
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-    video.addEventListener("play", onPlay);
-    video.addEventListener("pause", onPause);
-    return () => {
-      video.removeEventListener("play", onPlay);
-      video.removeEventListener("pause", onPause);
-    };
-  }, []);
+  }, [isInView]);
 
   // On video error, refresh the signed URL (it may have expired)
+  // Cap retries to prevent infinite loops for missing files
   const handleError = useCallback(() => {
+    if (errorCountRef.current >= 3) return;
+    errorCountRef.current += 1;
     console.warn(`[video] playback error, refreshing URL for ${item.videoPath}`);
     refresh();
   }, [refresh, item.videoPath]);
@@ -206,21 +186,26 @@ function VideoTile({
       onClick={handleTap}
     >
       <div className="relative aspect-[9/16] rounded-[16px] overflow-hidden bg-[#111] shadow-[0_4px_24px_rgba(0,0,0,0.08)] group-hover:shadow-[0_12px_48px_rgba(0,0,0,0.14)] transition-shadow duration-500">
-        {signedUrl ? (
-          <video
-            ref={videoRef}
-            src={signedUrl}
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="auto"
-            onError={handleError}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-          />
-        ) : (
-          /* Skeleton placeholder while signed URL loads */
-          <div className="w-full h-full animate-pulse bg-[#222]" />
+        {/* Always render the video element so the ref is stable;
+            set src only when the signed URL is ready */}
+        <video
+          ref={videoRef}
+          src={signedUrl ?? undefined}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          onError={signedUrl ? handleError : undefined}
+          onCanPlay={tryPlay}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+        />
+
+        {/* Skeleton overlay while signed URL is loading */}
+        {!signedUrl && (
+          <div className="absolute inset-0 animate-pulse bg-[#222]" />
         )}
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 via-40% to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
