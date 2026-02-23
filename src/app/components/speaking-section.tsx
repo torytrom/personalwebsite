@@ -1,7 +1,6 @@
 import { motion } from "motion/react";
 import { useInView } from "./hooks/use-in-view";
 import { Mic, Users, Lightbulb, Rocket } from "lucide-react";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
 
 const topics = [
   {
@@ -52,19 +51,6 @@ export function SpeakingSection() {
               <p className="font-['Inter'] text-[15px] leading-[1.8] text-[#555] mb-8">
                 I speak at conferences, lead workshops, and run private sessions for product organizations navigating the shift to AI-native workflows. My talks are practical, insight-driven, and built for leaders who want to move faster.
               </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="relative aspect-[4/3] rounded-2xl overflow-hidden mb-8"
-            >
-              <ImageWithFallback
-                src="https://images.unsplash.com/photo-1762968269894-1d7e1ce8894e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb25mZXJlbmNlJTIwc3BlYWtpbmclMjBzdGFnZSUyMGtleW5vdGV8ZW58MXx8fHwxNzcxNDM1NDg4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-                alt="Speaking at conference"
-                className="w-full h-full object-cover"
-              />
             </motion.div>
 
             <motion.a
