@@ -153,21 +153,33 @@ function VideoTile({
   const { url: signedUrl, refresh } = useSignedUrl(item.videoPath);
   const errorCountRef = useRef(0);
 
-  // Try to play when the video has enough data and the section is in view
-  const tryPlay = useCallback(() => {
-    const video = videoRef.current;
-    if (!video || !isInView) return;
-    video
-      .play()
-      .then(() => setIsPlaying(true))
-      .catch(() => {});
-  }, [isInView]);
-
-  // Retry play when the section scrolls into view (onCanPlay may have
-  // already fired while the section was off-screen)
+  // When the signed URL arrives, explicitly tell the browser to load it.
+  // React's setAttribute('src', …) doesn't always trigger the media-load
+  // pipeline, so we call video.load() to be safe.
   useEffect(() => {
-    if (isInView) tryPlay();
-  }, [isInView, tryPlay]);
+    const video = videoRef.current;
+    if (!video || !signedUrl) return;
+    video.load();
+  }, [signedUrl]);
+
+  // Play when the section is in view and the video has data
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !signedUrl || !isInView) return;
+
+    // If the video already has data, play immediately
+    if (video.readyState >= 3) {
+      video.play().then(() => setIsPlaying(true)).catch(() => {});
+      return;
+    }
+
+    // Otherwise wait for canplay, then play
+    const onReady = () => {
+      video.play().then(() => setIsPlaying(true)).catch(() => {});
+    };
+    video.addEventListener("canplay", onReady, { once: true });
+    return () => video.removeEventListener("canplay", onReady);
+  }, [signedUrl, isInView]);
 
   // On video error, refresh the signed URL (it may have expired)
   // Cap retries to prevent infinite loops for missing files
@@ -197,13 +209,11 @@ function VideoTile({
         <video
           ref={videoRef}
           src={signedUrl ?? undefined}
-          autoPlay
           loop
           muted
           playsInline
           preload="auto"
           onError={signedUrl ? handleError : undefined}
-          onCanPlay={tryPlay}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
