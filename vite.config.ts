@@ -12,7 +12,7 @@ function videoSignedUrlDev() {
 
   const BUCKET = 'website-video'
   const EXPIRES = 600 // 10 min
-  const ALLOWED_PATH = /^[a-zA-Z0-9_\-]+\.mov$/
+  const ALLOWED_PATH = /^[a-zA-Z0-9_\-]+\.(mov|mp4)$/
 
   return {
     name: 'video-signed-url-dev',

@@ -53,7 +53,7 @@ function isRateLimited(ip: string): boolean {
 // ── Path validation ───────────────────────────────────────────────────────────
 // Only allow filenames that look like the known video assets:
 //   hex/uuid-style names + .mov   (no slashes, no traversal)
-const ALLOWED_PATH = /^[a-zA-Z0-9_\-]+\.mov$/;
+const ALLOWED_PATH = /^[a-zA-Z0-9_\-]+\.(mov|mp4)$/;
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 export default async function handler(req: VercelRequest, res: VercelResponse) {
