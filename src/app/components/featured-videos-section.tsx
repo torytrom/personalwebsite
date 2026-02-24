@@ -115,7 +115,8 @@ async function fetchSignedUrl(videoPath: string): Promise<string | null> {
 }
 
 // ── Hook: useSignedUrl ────────────────────────────────────────────────────────
-function useSignedUrl(videoPath: string) {
+/** Only fetches when `enabled` is true (i.e. the tile is in view). */
+function useSignedUrl(videoPath: string, enabled: boolean) {
   const [url, setUrl] = useState<string | null>(() => {
     const cached = urlCache.get(videoPath);
     return cached && cached.expiresAt - REFRESH_BUFFER_MS > Date.now()
@@ -132,6 +133,8 @@ function useSignedUrl(videoPath: string) {
   }, [videoPath]);
 
   useEffect(() => {
+    if (!enabled) return;
+
     let mounted = true;
 
     // Initial fetch
@@ -153,7 +156,7 @@ function useSignedUrl(videoPath: string) {
       mounted = false;
       clearInterval(timer);
     };
-  }, [videoPath]);
+  }, [videoPath, enabled]);
 
   return { url, refresh };
 }
@@ -168,7 +171,7 @@ function VideoTile({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const { url: signedUrl, refresh } = useSignedUrl(item.videoPath);
+  const { url: signedUrl, refresh } = useSignedUrl(item.videoPath, isInView);
   const errorCountRef = useRef(0);
 
   // When the signed URL arrives, explicitly tell the browser to load it.
