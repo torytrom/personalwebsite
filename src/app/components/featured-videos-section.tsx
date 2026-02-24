@@ -163,6 +163,12 @@ function VideoTile({
       .catch(() => {});
   }, [isInView]);
 
+  // Retry play when the section scrolls into view (onCanPlay may have
+  // already fired while the section was off-screen)
+  useEffect(() => {
+    if (isInView) tryPlay();
+  }, [isInView, tryPlay]);
+
   // On video error, refresh the signed URL (it may have expired)
   // Cap retries to prevent infinite loops for missing files
   const handleError = useCallback(() => {
