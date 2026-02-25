@@ -1,31 +1,40 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const BUCKET = "website-video";
 const SIGNED_URL_EXPIRES = 600; // 10 minutes
 
-// ── Lazy Supabase client (created on first request, reused across warm invocations)
-let _supabase: SupabaseClient | null = null;
+// ── Lazy R2 client (created on first request, reused across warm invocations)
+let _s3: S3Client | null = null;
 
-function getSupabase(): SupabaseClient | null {
-  if (_supabase) return _supabase;
+function getS3(): S3Client | null {
+  if (_s3) return _s3;
 
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const endpoint = process.env.R2_ENDPOINT;
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
 
-  if (!url || !key) {
+  if (!endpoint || !accessKeyId || !secretAccessKey) {
     console.error(
-      "[signed-url] Missing env vars. SUPABASE_URL:",
-      url ? "set" : "MISSING",
-      "SUPABASE_SERVICE_ROLE_KEY:",
-      key ? "set" : "MISSING"
+      "[signed-url] Missing R2 env vars. R2_ENDPOINT:",
+      endpoint ? "set" : "MISSING",
+      "R2_ACCESS_KEY_ID:",
+      accessKeyId ? "set" : "MISSING",
+      "R2_SECRET_ACCESS_KEY:",
+      secretAccessKey ? "set" : "MISSING"
     );
     return null;
   }
 
-  _supabase = createClient(url, key);
-  return _supabase;
+  _s3 = new S3Client({
+    region: "auto",
+    endpoint,
+    credentials: { accessKeyId, secretAccessKey },
+  });
+
+  return _s3;
 }
 
 // ── Rate limiter (in-memory, per serverless instance) ─────────────────────────
@@ -52,8 +61,8 @@ function isRateLimited(ip: string): boolean {
 
 // ── Path validation ───────────────────────────────────────────────────────────
 // Only allow filenames that look like the known video assets:
-//   hex/uuid-style names + .mov   (no slashes, no traversal)
-const ALLOWED_PATH = /^[a-zA-Z0-9_\-]+\.(mov|mp4)$/;
+//   simple names + .mp4 only   (no slashes, no traversal)
+const ALLOWED_PATH = /^[a-zA-Z0-9_\-]+\.mp4$/;
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -76,9 +85,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // — Check Supabase client ──────────────────────────────────────────────────
-  const supabase = getSupabase();
-  if (!supabase) {
+  // — Check R2 client ─────────────────────────────────────────────────────────
+  const s3 = getS3();
+  if (!s3) {
     return res.status(503).json({ error: "Server configuration error — missing env vars" });
   }
 
@@ -115,18 +124,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: "Invalid path parameter" });
   }
 
-  // — Generate signed URL ────────────────────────────────────────────────────
-  const { data, error } = await supabase.storage
-    .from(BUCKET)
-    .createSignedUrl(filePath, SIGNED_URL_EXPIRES);
+  // — Generate presigned URL via R2 (S3-compatible) ──────────────────────────
+  try {
+    const command = new GetObjectCommand({
+      Bucket: BUCKET,
+      Key: filePath,
+    });
 
-  if (error || !data?.signedUrl) {
-    console.error(`[signed-url] Supabase error for "${filePath}":`, error?.message);
+    const signedUrl = await getSignedUrl(s3, command, {
+      expiresIn: SIGNED_URL_EXPIRES,
+    });
+
+    // — Respond ──────────────────────────────────────────────────────────────
+    // Let the browser cache the response for 5 min (half the signed-URL lifetime)
+    res.setHeader("Cache-Control", "private, max-age=300, stale-while-revalidate=60");
+    return res.status(200).json({ signedUrl });
+  } catch (err) {
+    console.error(`[signed-url] R2 error for "${filePath}":`, err);
     return res.status(502).json({ error: "Failed to generate signed URL" });
   }
-
-  // — Respond ────────────────────────────────────────────────────────────────
-  // Let the browser cache the response for 5 min (half the signed-URL lifetime)
-  res.setHeader("Cache-Control", "private, max-age=300, stale-while-revalidate=60");
-  return res.status(200).json({ signedUrl: data.signedUrl });
 }

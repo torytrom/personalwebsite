@@ -164,46 +164,73 @@ function useSignedUrl(videoPath: string, enabled: boolean) {
 // ── VideoTile ─────────────────────────────────────────────────────────────────
 function VideoTile({
   item,
-  isInView,
+  sectionInView,
 }: {
   item: VideoItem;
-  isInView: boolean;
+  sectionInView: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const tileRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const { url: signedUrl, refresh } = useSignedUrl(item.videoPath, isInView);
+
+  // Per-tile visibility — tracks whether THIS tile is in the viewport.
+  const [tileVisible, setTileVisible] = useState(false);
+
+  useEffect(() => {
+    const el = tileRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setTileVisible(entry.isIntersecting);
+      },
+      { rootMargin: "0px 100px 0px 100px" }
+    );
+
+    observer.observe(el);
+    return () => observer.unobserve(el);
+  }, []);
+
+  // Only fetch the signed URL when the section is scrolled into view
+  // AND this specific tile is visible. No eager pre-fetching.
+  const enabled = sectionInView && tileVisible;
+  const { url: signedUrl, refresh } = useSignedUrl(item.videoPath, enabled);
   const errorCountRef = useRef(0);
 
   // When the signed URL arrives, explicitly tell the browser to load it.
-  // React's setAttribute('src', …) doesn't always trigger the media-load
-  // pipeline, so we call video.load() to be safe.
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !signedUrl) return;
     video.load();
   }, [signedUrl]);
 
-  // Play when the section is in view and the video has data
+  // Play when the section is in view, tile is visible, and video has data
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !signedUrl || !isInView) return;
+    if (!video || !signedUrl || !sectionInView || !tileVisible) return;
 
-    // If the video already has data, play immediately
     if (video.readyState >= 3) {
       video.play().then(() => setIsPlaying(true)).catch(() => {});
       return;
     }
 
-    // Otherwise wait for canplay, then play
     const onReady = () => {
       video.play().then(() => setIsPlaying(true)).catch(() => {});
     };
     video.addEventListener("canplay", onReady, { once: true });
     return () => video.removeEventListener("canplay", onReady);
-  }, [signedUrl, isInView]);
+  }, [signedUrl, sectionInView, tileVisible]);
+
+  // Pause videos that scroll out of the marquee viewport to save resources
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (!tileVisible && !video.paused) {
+      video.pause();
+    }
+  }, [tileVisible]);
 
   // On video error, refresh the signed URL (it may have expired)
-  // Cap retries to prevent infinite loops for missing files
   const handleError = useCallback(() => {
     if (errorCountRef.current >= 3) return;
     errorCountRef.current += 1;
@@ -221,27 +248,27 @@ function VideoTile({
 
   return (
     <div
+      ref={tileRef}
       className="group cursor-pointer flex-shrink-0 w-[220px] sm:w-[250px] md:w-[280px]"
       onClick={handleTap}
     >
       <div className="relative aspect-[9/16] rounded-[16px] overflow-hidden bg-[#111] shadow-[0_4px_24px_rgba(0,0,0,0.08)] group-hover:shadow-[0_12px_48px_rgba(0,0,0,0.14)] transition-shadow duration-500">
-        {/* Always render the video element so the ref is stable;
-            set src only when the signed URL is ready */}
-        <video
-          ref={videoRef}
-          src={signedUrl ?? undefined}
-          loop
-          muted
-          playsInline
-          preload="auto"
-          onError={signedUrl ? handleError : undefined}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-        />
-
-        {/* Skeleton overlay while signed URL is loading */}
-        {!signedUrl && (
+        {/* Only render <video> once we have a signed URL (tile was in view) */}
+        {signedUrl ? (
+          <video
+            ref={videoRef}
+            src={signedUrl}
+            loop
+            muted
+            playsInline
+            preload="none"
+            onError={handleError}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+          />
+        ) : (
+          /* Skeleton placeholder until the tile scrolls into view & URL loads */
           <div className="absolute inset-0 animate-pulse bg-[#222]" />
         )}
 
@@ -267,7 +294,7 @@ function VideoTile({
 
 // ── Section ───────────────────────────────────────────────────────────────────
 export function FeaturedVideosSection() {
-  const { ref, isInView } = useInView({ threshold: 0.06 });
+  const { ref, isInView } = useInView({ threshold: 0.15 });
   const [isPaused, setIsPaused] = useState(false);
 
   const duplicatedItems = [...videoItems, ...videoItems];
@@ -323,7 +350,7 @@ export function FeaturedVideosSection() {
             <VideoTile
               key={`${item.id}-${i}`}
               item={item}
-              isInView={isInView}
+              sectionInView={isInView}
             />
           ))}
         </div>
